@@ -1,0 +1,59 @@
+name: krypton
+description: "Krypton — high-performance multimedia downloader & converter."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # ── State & DI ────────────────────────────────────────────────────────
+  provider: ^6.1.2
+
+  # ── Persistence ───────────────────────────────────────────────────────
+  shared_preferences: ^2.3.2
+
+  # ── Theme ─────────────────────────────────────────────────────────────
+  dynamic_color: ^1.7.0
+
+  # ── Networking (updater) ──────────────────────────────────────────────
+  http: ^1.2.2
+
+  # ── File system ───────────────────────────────────────────────────────
+  path_provider: ^2.1.4
+  path: ^1.9.0
+
+  # ── OTA (Android only) ────────────────────────────────────────────────
+  ota_update: ^4.0.0
+
+  # ── App metadata ─────────────────────────────────────────────────────
+  package_info_plus: ^8.1.1
+
+  # ── File picker (choose download/convert folders) ─────────────────────
+  file_picker: ^8.1.2
+
+  # ── Icons ─────────────────────────────────────────────────────────────
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
