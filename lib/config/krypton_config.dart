@@ -1,56 +1,108 @@
-// krypton_config.dart
-// Persistent configuration layer for Krypton.
-// Replaces Python config_manager.py using shared_preferences.
+// lib/config/krypton_config.dart
+//
+// Persistent app configuration backed by SharedPreferences.
+// All setters are async and call notifyListeners() so that widgets
+// built with context.watch<KryptonConfig>() rebuild automatically.
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum AppLanguage { fr, en }
+// ── Language enum ─────────────────────────────────────────────────────────────
 
-class KryptonConfig {
+enum AppLanguage {
+  en,
+  fr;
+
+  String get displayName {
+    switch (this) {
+      case AppLanguage.en:
+        return 'English';
+      case AppLanguage.fr:
+        return 'Français';
+    }
+  }
+}
+
+// ── KryptonConfig ─────────────────────────────────────────────────────────────
+
+class KryptonConfig extends ChangeNotifier {
   KryptonConfig._();
+
   static final KryptonConfig instance = KryptonConfig._();
 
-  late SharedPreferences _prefs;
+  // ── SharedPreferences keys ────────────────────────────────────────────────
 
-  // ── Keys ────────────────────────────────────────────────────────────────
-  static const _kLanguage        = 'language';
-  static const _kDownloadPath    = 'download_path';
-  static const _kConvertPath     = 'convert_path';
-  static const _kMaxWorkers      = 'max_workers';
-  static const _kDynamicColor    = 'dynamic_color';
-  static const _kPitchBlack      = 'pitch_black';
+  static const _kDownloadPath  = 'download_path';
+  static const _kConvertPath   = 'convert_path';
+  static const _kMaxWorkers    = 'max_workers';
+  static const _kDynamicColor  = 'dynamic_color';
+  static const _kLanguage      = 'language';
 
-  // ── Init (call once in main) ────────────────────────────────────────────
+  // ── Internal state ────────────────────────────────────────────────────────
+
+  SharedPreferences? _prefs;
+
+  String       _downloadPath  = '';
+  String       _convertPath   = '';
+  int          _maxWorkers    = 3;
+  bool         _dynamicColor  = true;
+  AppLanguage  _language      = AppLanguage.en;
+
+  // ── Initialisation ────────────────────────────────────────────────────────
+
+  /// Call once at app startup, before the widget tree is built.
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
+
+    _downloadPath = _prefs!.getString(_kDownloadPath)  ?? '';
+    _convertPath  = _prefs!.getString(_kConvertPath)   ?? '';
+    _maxWorkers   = _prefs!.getInt(_kMaxWorkers)       ?? 3;
+    _dynamicColor = _prefs!.getBool(_kDynamicColor)    ?? true;
+
+    final String langName = _prefs!.getString(_kLanguage) ?? AppLanguage.en.name;
+    _language = AppLanguage.values.firstWhere(
+      (l) => l.name == langName,
+      orElse: () => AppLanguage.en,
+    );
   }
 
-  // ── Language ────────────────────────────────────────────────────────────
-  AppLanguage get language {
-    final v = _prefs.getString(_kLanguage) ?? 'fr';
-    return v == 'en' ? AppLanguage.en : AppLanguage.fr;
+  // ── Getters ───────────────────────────────────────────────────────────────
+
+  String      get downloadPath  => _downloadPath;
+  String      get convertPath   => _convertPath;
+  int         get maxWorkers    => _maxWorkers;
+  bool        get dynamicColor  => _dynamicColor;
+  AppLanguage get language      => _language;
+
+  // ── Setters ───────────────────────────────────────────────────────────────
+
+  Future<void> setDownloadPath(String v) async {
+    _downloadPath = v;
+    await _prefs?.setString(_kDownloadPath, v);
+    notifyListeners();
   }
-  Future<void> setLanguage(AppLanguage lang) =>
-      _prefs.setString(_kLanguage, lang.name);
 
-  // ── Paths ───────────────────────────────────────────────────────────────
-  String get downloadPath => _prefs.getString(_kDownloadPath) ?? '';
-  Future<void> setDownloadPath(String p) => _prefs.setString(_kDownloadPath, p);
+  Future<void> setConvertPath(String v) async {
+    _convertPath = v;
+    await _prefs?.setString(_kConvertPath, v);
+    notifyListeners();
+  }
 
-  String get convertPath => _prefs.getString(_kConvertPath) ?? '';
-  Future<void> setConvertPath(String p) => _prefs.setString(_kConvertPath, p);
+  Future<void> setMaxWorkers(int v) async {
+    _maxWorkers = v.clamp(1, 8);
+    await _prefs?.setInt(_kMaxWorkers, _maxWorkers);
+    notifyListeners();
+  }
 
-  // ── Workers ─────────────────────────────────────────────────────────────
-  int get maxWorkers => _prefs.getInt(_kMaxWorkers) ?? 3;
-  Future<void> setMaxWorkers(int n) => _prefs.setInt(_kMaxWorkers, n.clamp(1, 8));
+  Future<void> setDynamicColor(bool v) async {
+    _dynamicColor = v;
+    await _prefs?.setBool(_kDynamicColor, v);
+    notifyListeners();
+  }
 
-  // ── Theme toggles ───────────────────────────────────────────────────────
-  bool get useDynamicColor => _prefs.getBool(_kDynamicColor) ?? true;
-  Future<void> setDynamicColor(bool v) => _prefs.setBool(_kDynamicColor, v);
-
-  bool get usePitchBlack => _prefs.getBool(_kPitchBlack) ?? true;
-  Future<void> setPitchBlack(bool v) => _prefs.setBool(_kPitchBlack, v);
-
-  // ── Reset ───────────────────────────────────────────────────────────────
-  Future<void> reset() => _prefs.clear();
+  Future<void> setLanguage(AppLanguage v) async {
+    _language = v;
+    await _prefs?.setString(_kLanguage, v.name);
+    notifyListeners();
+  }
 }

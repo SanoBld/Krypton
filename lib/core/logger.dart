@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -81,9 +82,9 @@ class LogEntry {
 
   String get formattedTime {
     final DateTime t = timestamp;
-    final String h = t.hour.toString().padLeft(2, '0');
-    final String m = t.minute.toString().padLeft(2, '0');
-    final String s = t.second.toString().padLeft(2, '0');
+    final String h  = t.hour.toString().padLeft(2, '0');
+    final String m  = t.minute.toString().padLeft(2, '0');
+    final String s  = t.second.toString().padLeft(2, '0');
     final String ms = t.millisecond.toString().padLeft(3, '0');
     return '$h:$m:$s.$ms';
   }
@@ -204,11 +205,11 @@ class KryptonLogger {
     if (level.index < minimumLevel.index) return;
 
     final LogEntry entry = LogEntry(
-      level: level,
-      tag: tag,
-      message: message,
-      timestamp: DateTime.now(),
-      error: error,
+      level:      level,
+      tag:        tag,
+      message:    message,
+      timestamp:  DateTime.now(),
+      error:      error,
       stackTrace: stackTrace,
     );
 
@@ -257,8 +258,6 @@ KryptonLogger get logger => KryptonLogger.instance;
 // Lightweight live log viewer widget.
 // Drop into a settings debug panel or a dedicated diagnostics screen.
 // ─────────────────────────────────────────────────────────────────────────────
-
-import 'package:flutter/material.dart';
 
 class LogViewerWidget extends StatefulWidget {
   const LogViewerWidget({super.key});
@@ -387,7 +386,7 @@ class _LogLine extends StatelessWidget {
     final ColorScheme cs = Theme.of(context).colorScheme;
     switch (entry.level) {
       case LogLevel.verbose:
-        return cs.onSurface.withOpacity(0.4);
+        return cs.onSurface.withValues(alpha: 0.4);
       case LogLevel.debug:
         return cs.tertiary;
       case LogLevel.info:
@@ -415,15 +414,15 @@ class _LogLine extends StatelessWidget {
             height: 18,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color:        color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
               entry.level.label,
               style: TextStyle(
-                fontSize: 10,
+                fontSize:   10,
                 fontWeight: FontWeight.bold,
-                color: color,
+                color:      color,
               ),
             ),
           ),
@@ -433,8 +432,8 @@ class _LogLine extends StatelessWidget {
             entry.formattedTime,
             style: tt.bodySmall?.copyWith(
               fontFamily: 'monospace',
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-              fontSize: 10,
+              color:      Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+              fontSize:   10,
             ),
           ),
           const SizedBox(width: 6),
@@ -443,8 +442,8 @@ class _LogLine extends StatelessWidget {
             '[${entry.tag}]',
             style: tt.bodySmall?.copyWith(
               fontFamily: 'monospace',
-              color: color.withOpacity(0.8),
-              fontSize: 10,
+              color:      color.withValues(alpha: 0.8),
+              fontSize:   10,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -452,12 +451,11 @@ class _LogLine extends StatelessWidget {
           // Message.
           Expanded(
             child: Text(
-              entry.message +
-                  (entry.error != null ? ' — ${entry.error}' : ''),
+              entry.message + (entry.error != null ? ' — ${entry.error}' : ''),
               style: tt.bodySmall?.copyWith(
                 fontFamily: 'monospace',
-                fontSize: 10,
-                color: Theme.of(context).colorScheme.onSurface,
+                fontSize:   10,
+                color:      Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),

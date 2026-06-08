@@ -9,7 +9,6 @@ import '../../config/krypton_config.dart';
 import '../../core/logger.dart';
 import '../../core/process_runner.dart';
 import '../../services/krypton_updater.dart';
-import '../../theme/krypton_theme.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SettingsScreen
@@ -33,7 +32,6 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   static const String _tag = 'SettingsScreen';
 
-  // Binary availability cache — resolved once on init.
   bool? _ytdlpAvailable;
   bool? _ffmpegAvailable;
   bool _checkingBinaries = true;
@@ -56,8 +54,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
     logger.i(_tag, 'yt-dlp=$yt, ffmpeg=$ff');
   }
-
-  // ── Build ────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +114,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  /// Responsive horizontal padding based on screen width.
   EdgeInsets _contentPadding(BuildContext context) {
     final double width = MediaQuery.of(context).size.width;
     final double h = width > 900 ? (width - 800) / 2 : 16;
@@ -208,8 +203,8 @@ class _PathTileState extends State<_PathTile> {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
-          fontSize: 12,
-          color: _current.isEmpty ? cs.error : cs.onSurfaceVariant,
+          fontSize:   12,
+          color:      _current.isEmpty ? cs.error : cs.onSurfaceVariant,
           fontFamily: 'monospace',
         ),
       ),
@@ -265,12 +260,12 @@ class _DownloadsSectionState extends State<_DownloadsSection> {
               const Text('1', style: TextStyle(fontSize: 12)),
               Expanded(
                 child: Slider(
-                  value: _workers.toDouble(),
-                  min: 1,
-                  max: 8,
-                  divisions: 7,
-                  label: '$_workers',
-                  onChanged: (v) => setState(() => _workers = v.round()),
+                  value:      _workers.toDouble(),
+                  min:        1,
+                  max:        8,
+                  divisions:  7,
+                  label:      '$_workers',
+                  onChanged:  (v) => setState(() => _workers = v.round()),
                   onChangeEnd: (v) async {
                     await KryptonConfig.instance.setMaxWorkers(v.round());
                     logger.i('Settings', 'Workers → ${v.round()}');
@@ -299,23 +294,21 @@ class _AppearanceSection extends StatefulWidget {
 
 class _AppearanceSectionState extends State<_AppearanceSection> {
   late bool _dynamicColor;
-  late String _language;
+  late AppLanguage _language;
 
   @override
   void initState() {
     super.initState();
     _dynamicColor = KryptonConfig.instance.dynamicColor;
-    _language = KryptonConfig.instance.language;
+    _language     = KryptonConfig.instance.language;
   }
 
   @override
   Widget build(BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
-    final KryptonThemeProvider theme = context.read<KryptonThemeProvider>();
 
     return _Card(
       children: [
-        // Dynamic color toggle (Android only).
         if (Platform.isAndroid) ...[
           SwitchListTile(
             secondary: Icon(Icons.palette_outlined, color: cs.primary),
@@ -331,30 +324,27 @@ class _AppearanceSectionState extends State<_AppearanceSection> {
             onChanged: (v) async {
               setState(() => _dynamicColor = v);
               await KryptonConfig.instance.setDynamicColor(v);
-              theme.setDynamicColor(v);
               logger.i('Settings', 'Dynamic color → $v');
             },
           ),
           const _Divider(),
         ],
-        // Language selector.
         ListTile(
           leading: Icon(Icons.language_rounded, color: cs.primary),
-          title:
-              const Text('Language', style: TextStyle(fontSize: 14)),
-          trailing: DropdownButton<String>(
-            value: _language,
-            underline: const SizedBox.shrink(),
+          title: const Text('Language', style: TextStyle(fontSize: 14)),
+          trailing: DropdownButton<AppLanguage>(
+            value:        _language,
+            underline:    const SizedBox.shrink(),
             borderRadius: BorderRadius.circular(12),
             items: const [
-              DropdownMenuItem(value: 'en', child: Text('English')),
-              DropdownMenuItem(value: 'fr', child: Text('Français')),
+              DropdownMenuItem(value: AppLanguage.en, child: Text('English')),
+              DropdownMenuItem(value: AppLanguage.fr, child: Text('Français')),
             ],
             onChanged: (v) async {
               if (v == null) return;
               setState(() => _language = v);
               await KryptonConfig.instance.setLanguage(v);
-              logger.i('Settings', 'Language → $v');
+              logger.i('Settings', 'Language → ${v.name}');
             },
           ),
         ),
@@ -385,24 +375,24 @@ class _BinariesSection extends StatelessWidget {
     return _Card(
       children: [
         _BinaryTile(
-          name: 'yt-dlp',
+          name:        'yt-dlp',
           description: 'Media downloader binary',
-          available: ytdlpAvailable,
-          checking: checking,
+          available:   ytdlpAvailable,
+          checking:    checking,
         ),
         const _Divider(),
         _BinaryTile(
-          name: 'ffmpeg',
+          name:        'ffmpeg',
           description: 'Audio/video converter binary',
-          available: ffmpegAvailable,
-          checking: checking,
+          available:   ffmpegAvailable,
+          checking:    checking,
         ),
         const _Divider(),
         ListTile(
           dense: true,
           trailing: TextButton.icon(
             onPressed: checking ? null : onRecheck,
-            icon: const Icon(Icons.refresh_rounded, size: 16),
+            icon:  const Icon(Icons.refresh_rounded, size: 16),
             label: const Text('Re-check'),
           ),
           title: Text(
@@ -438,9 +428,9 @@ class _BinaryTile extends StatelessWidget {
     Widget trailing;
     if (checking) {
       trailing = const SizedBox(
-        width: 16,
+        width:  16,
         height: 16,
-        child: CircularProgressIndicator(strokeWidth: 2),
+        child:  CircularProgressIndicator(strokeWidth: 2),
       );
     } else if (available == true) {
       trailing = Icon(Icons.check_circle_rounded, color: Colors.green[400]);
@@ -452,7 +442,7 @@ class _BinaryTile extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: cs.surfaceContainerHighest,
+          color:        cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
@@ -460,10 +450,14 @@ class _BinaryTile extends StatelessWidget {
           style: const TextStyle(fontSize: 14),
         ),
       ),
-      title: Text(name,
-          style: const TextStyle(fontSize: 14, fontFamily: 'monospace')),
-      subtitle: Text(description,
-          style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+      title: Text(
+        name,
+        style: const TextStyle(fontSize: 14, fontFamily: 'monospace'),
+      ),
+      subtitle: Text(
+        description,
+        style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+      ),
       trailing: trailing,
     );
   }
@@ -478,32 +472,29 @@ class _UpdatesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
+    final ColorScheme cs         = Theme.of(context).colorScheme;
     final KryptonUpdater updater = context.watch<KryptonUpdater>();
 
     return _Card(
       children: [
-        // Version info.
         ListTile(
           leading: Icon(Icons.info_outline_rounded, color: cs.primary),
           title: const Text('Version', style: TextStyle(fontSize: 14)),
           trailing: Text(
             updater.currentVersion,
             style: TextStyle(
-              color: cs.onSurfaceVariant,
-              fontSize: 13,
+              color:      cs.onSurfaceVariant,
+              fontSize:   13,
               fontFamily: 'monospace',
             ),
           ),
         ),
         const _Divider(),
-        // Update state / action.
         if (Platform.isAndroid)
           _AndroidUpdateTile(updater: updater)
         else
           ListTile(
-            leading:
-                Icon(Icons.computer_rounded, color: cs.onSurfaceVariant),
+            leading: Icon(Icons.computer_rounded, color: cs.onSurfaceVariant),
             title: const Text(
               'Automatic updates',
               style: TextStyle(fontSize: 14),
@@ -524,10 +515,11 @@ class _AndroidUpdateTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
+    final ColorScheme cs    = Theme.of(context).colorScheme;
     final UpdateState state = updater.state;
 
-    String subtitle;
+    // Initialised to empty string — always overwritten by the switch below.
+    String  subtitle = '';
     Widget? trailing;
 
     switch (state) {
@@ -535,16 +527,16 @@ class _AndroidUpdateTile extends StatelessWidget {
         subtitle = 'Tap to check for a new version.';
         trailing = TextButton.icon(
           onPressed: updater.checkAndUpdate,
-          icon: const Icon(Icons.system_update_alt_rounded, size: 16),
+          icon:  const Icon(Icons.system_update_alt_rounded, size: 16),
           label: const Text('Check now'),
         );
         break;
       case UpdateState.checking:
         subtitle = 'Checking for updates…';
         trailing = const SizedBox(
-          width: 18,
+          width:  18,
           height: 18,
-          child: CircularProgressIndicator(strokeWidth: 2),
+          child:  CircularProgressIndicator(strokeWidth: 2),
         );
         break;
       case UpdateState.downloading:
@@ -552,7 +544,7 @@ class _AndroidUpdateTile extends StatelessWidget {
         trailing = SizedBox(
           width: 120,
           child: LinearProgressIndicator(
-            value: updater.progress,
+            value:        updater.progress,
             borderRadius: BorderRadius.circular(4),
           ),
         );
@@ -573,8 +565,7 @@ class _AndroidUpdateTile extends StatelessWidget {
 
     return ListTile(
       leading: Icon(Icons.system_update_rounded, color: cs.primary),
-      title:
-          const Text('Krypton update', style: TextStyle(fontSize: 14)),
+      title:   const Text('Krypton update', style: TextStyle(fontSize: 14)),
       subtitle: Text(
         subtitle,
         style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
@@ -605,21 +596,20 @@ class _DiagnosticsSectionState extends State<_DiagnosticsSection> {
       children: [
         ListTile(
           leading: Icon(Icons.bug_report_outlined, color: cs.tertiary),
-          title:
-              const Text('Live log viewer', style: TextStyle(fontSize: 14)),
+          title:   const Text('Live log viewer', style: TextStyle(fontSize: 14)),
           subtitle: Text(
             'Debug build only — last 500 entries.',
             style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
           ),
           trailing: IconButton(
-            icon: Icon(_expanded ? Icons.expand_less : Icons.expand_more),
+            icon:      Icon(_expanded ? Icons.expand_less : Icons.expand_more),
             onPressed: () => setState(() => _expanded = !_expanded),
           ),
         ),
         if (_expanded)
           SizedBox(
             height: 320,
-            child: LogViewerWidget(),
+            child:  LogViewerWidget(),
           ),
       ],
     );
@@ -642,17 +632,16 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         label.toUpperCase(),
         style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
+          fontSize:      11,
+          fontWeight:    FontWeight.w700,
           letterSpacing: 1.2,
-          color: cs.primary,
+          color:         cs.primary,
         ),
       ),
     );
   }
 }
 
-/// Rounded card container wrapping a list of setting tiles.
 class _Card extends StatelessWidget {
   const _Card({required this.children});
   final List<Widget> children;
@@ -662,10 +651,10 @@ class _Card extends StatelessWidget {
     final ColorScheme cs = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: cs.surfaceContainerLow,
+        color:        cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: cs.outlineVariant.withOpacity(0.4),
+          color: cs.outlineVariant.withValues(alpha: 0.4),
           width: 0.8,
         ),
       ),
@@ -678,18 +667,16 @@ class _Card extends StatelessWidget {
   }
 }
 
-/// Thin divider between tiles inside a _Card.
 class _Divider extends StatelessWidget {
   const _Divider();
 
   @override
   Widget build(BuildContext context) {
     return Divider(
-      height: 1,
+      height:    1,
       thickness: 0.6,
-      indent: 16,
-      color:
-          Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+      indent:    16,
+      color:     Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
     );
   }
 }

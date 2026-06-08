@@ -11,7 +11,7 @@ class KryptonColors {
   static const surfaceVar = Color(0xFF141414);
   static const onSurface  = Color(0xFFFFFFFF);
   static const muted      = Color(0xFF3A3A3A);
-  static const neonAccent = Color(0xFF00E5FF); // cyan-neon focus indicator
+  static const neonAccent = Color(0xFF00E5FF);
   static const error      = Color(0xFFFF4444);
 }
 
@@ -24,16 +24,14 @@ ColorScheme _pitchBlackScheme([ColorScheme? dynamic]) {
       ColorScheme.fromSeed(seedColor: _fallbackSeed, brightness: Brightness.dark);
 
   return base.copyWith(
-    brightness:       Brightness.dark,
-    background:       KryptonColors.background,
-    surface:          KryptonColors.surface,
-    surfaceVariant:   KryptonColors.surfaceVar,
-    onBackground:     KryptonColors.onSurface,
-    onSurface:        KryptonColors.onSurface,
-    outline:          KryptonColors.muted,
-    primary:          dynamic?.primary ?? KryptonColors.neonAccent,
-    onPrimary:        KryptonColors.background,
-    error:            KryptonColors.error,
+    brightness:              Brightness.dark,
+    surface:                 KryptonColors.surface,
+    surfaceContainerHighest: KryptonColors.surfaceVar,
+    onSurface:               KryptonColors.onSurface,
+    outline:                 KryptonColors.muted,
+    primary:                 dynamic?.primary ?? KryptonColors.neonAccent,
+    onPrimary:               KryptonColors.background,
+    error:                   KryptonColors.error,
   );
 }
 
@@ -41,9 +39,9 @@ ColorScheme _pitchBlackScheme([ColorScheme? dynamic]) {
 ThemeData _buildTheme(ColorScheme scheme) => ThemeData(
   useMaterial3:  true,
   colorScheme:   scheme,
-  scaffoldBackgroundColor: scheme.background,
+  scaffoldBackgroundColor: scheme.surface,
   appBarTheme: AppBarTheme(
-    backgroundColor:  scheme.background,
+    backgroundColor:  scheme.surface,
     foregroundColor:  scheme.onSurface,
     elevation:        0,
     scrolledUnderElevation: 0,
@@ -55,42 +53,42 @@ ThemeData _buildTheme(ColorScheme scheme) => ThemeData(
     ),
   ),
   navigationRailTheme: NavigationRailThemeData(
-    backgroundColor:         scheme.background,
-    selectedIconTheme:       IconThemeData(color: scheme.primary),
-    unselectedIconTheme:     IconThemeData(color: scheme.outline),
-    selectedLabelTextStyle:  TextStyle(color: scheme.primary, fontWeight: FontWeight.w600),
+    backgroundColor:          scheme.surface,
+    selectedIconTheme:        IconThemeData(color: scheme.primary),
+    unselectedIconTheme:      IconThemeData(color: scheme.outline),
+    selectedLabelTextStyle:   TextStyle(color: scheme.primary, fontWeight: FontWeight.w600),
     unselectedLabelTextStyle: TextStyle(color: scheme.outline),
-    indicatorColor: scheme.primary.withOpacity(0.12),
+    indicatorColor: scheme.primary.withValues(alpha: 0.12),
   ),
   navigationBarTheme: NavigationBarThemeData(
-    backgroundColor:    scheme.surface,
-    indicatorColor:     scheme.primary.withOpacity(0.15),
-    iconTheme: MaterialStateProperty.resolveWith((states) {
-      if (states.contains(MaterialState.selected)) {
+    backgroundColor: scheme.surface,
+    indicatorColor:  scheme.primary.withValues(alpha: 0.15),
+    iconTheme: WidgetStateProperty.resolveWith((states) {
+      if (states.contains(WidgetState.selected)) {
         return IconThemeData(color: scheme.primary);
       }
       return IconThemeData(color: scheme.outline);
     }),
-    labelTextStyle: MaterialStateProperty.resolveWith((states) {
-      if (states.contains(MaterialState.selected)) {
+    labelTextStyle: WidgetStateProperty.resolveWith((states) {
+      if (states.contains(WidgetState.selected)) {
         return TextStyle(color: scheme.primary, fontWeight: FontWeight.w600, fontSize: 12);
       }
       return TextStyle(color: scheme.outline, fontSize: 12);
     }),
   ),
-  cardTheme: CardTheme(
-    color:        scheme.surfaceVariant,
-    elevation:    0,
+  cardTheme: CardThemeData(
+    color:     scheme.surfaceContainerHighest,
+    elevation: 0,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(16),
-      side: BorderSide(color: KryptonColors.muted.withOpacity(0.3)),
+      side: BorderSide(color: KryptonColors.muted.withValues(alpha: 0.3)),
     ),
     margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
   ),
   inputDecorationTheme: InputDecorationTheme(
-    filled:      true,
-    fillColor:   scheme.surfaceVariant,
-    border:      OutlineInputBorder(
+    filled:    true,
+    fillColor: scheme.surfaceContainerHighest,
+    border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
       borderSide:   BorderSide(color: KryptonColors.muted),
     ),
@@ -107,14 +105,17 @@ ThemeData _buildTheme(ColorScheme scheme) => ThemeData(
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
-      backgroundColor:    scheme.primary,
-      foregroundColor:    scheme.onPrimary,
+      backgroundColor: scheme.primary,
+      foregroundColor: scheme.onPrimary,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       elevation: 0,
     ),
   ),
-  dividerTheme: DividerThemeData(color: KryptonColors.muted.withOpacity(0.4), thickness: 0.5),
+  dividerTheme: DividerThemeData(
+    color:     KryptonColors.muted.withValues(alpha: 0.4),
+    thickness: 0.5,
+  ),
   fontFamily: 'Inter',
 );
 
@@ -138,12 +139,10 @@ class KryptonThemeProvider extends StatelessWidget {
         ColorScheme scheme;
 
         if (useDynamicColor && darkDynamic != null) {
-          // Material You — harmonize with wallpaper palette
           scheme = usePitchBlack
               ? _pitchBlackScheme(darkDynamic)
               : darkDynamic;
         } else {
-          // Pitch-black fallback
           scheme = _pitchBlackScheme();
         }
 

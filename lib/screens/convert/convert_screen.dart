@@ -1,5 +1,7 @@
 // lib/screens/convert/convert_screen.dart
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
@@ -44,9 +46,12 @@ class _ConvertView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ── Header ──────────────────────────────────────────────────
-        Text('Conversion par lot',
-            style: TextStyle(
-              color: cs.onSurface, fontSize: 22, fontWeight: FontWeight.w700)),
+        Text(
+          'Batch conversion',
+          style: TextStyle(
+            color: cs.onSurface, fontSize: 22, fontWeight: FontWeight.w700,
+          ),
+        ),
         const SizedBox(height: 24),
 
         // ── Format selector + actions ────────────────────────────────
@@ -55,14 +60,14 @@ class _ConvertView extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              color:        cs.surfaceVariant,
+              color:        cs.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(12),
-              border:       Border.all(color: cs.outline.withOpacity(0.4)),
+              border:       Border.all(color: cs.outline.withValues(alpha: 0.4)),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value:         ctl.selectedFormat,
-                dropdownColor: cs.surfaceVariant,
+                dropdownColor: cs.surfaceContainerHighest,
                 style:         TextStyle(color: cs.onSurface),
                 items: ConvertController.supportedFormats
                     .map((f) => DropdownMenuItem(value: f, child: Text(f.toUpperCase())))
@@ -77,7 +82,7 @@ class _ConvertView extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: () => _pickFiles(context),
             icon:  const Icon(Icons.folder_open_rounded),
-            label: const Text('Ajouter fichiers'),
+            label: const Text('Add files'),
           ),
           const SizedBox(width: 12),
           ElevatedButton.icon(
@@ -85,13 +90,13 @@ class _ConvertView extends StatelessWidget {
                 ? null
                 : () => context.read<ConvertController>().startAll(),
             icon:  const Icon(Icons.play_arrow_rounded),
-            label: const Text('Convertir'),
+            label: const Text('Convert'),
           ),
           const Spacer(),
           TextButton.icon(
             onPressed: () => context.read<ConvertController>().clearAll(),
             icon:  Icon(Icons.clear_all_rounded, color: cs.error),
-            label: Text('Vider', style: TextStyle(color: cs.error)),
+            label: Text('Clear', style: TextStyle(color: cs.error)),
           ),
         ]),
         const SizedBox(height: 20),
@@ -100,8 +105,10 @@ class _ConvertView extends StatelessWidget {
         Expanded(
           child: ctl.jobs.isEmpty
               ? Center(
-                  child: Text('Aucun fichier ajouté.',
-                      style: TextStyle(color: cs.outline)),
+                  child: Text(
+                    'No files added.',
+                    style: TextStyle(color: cs.outline),
+                  ),
                 )
               : ListView.builder(
                   itemCount: ctl.jobs.length,
@@ -145,11 +152,13 @@ class _ConvertTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: cs.primary.withOpacity(0.12),
+                  color:        cs.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Text('→ ${job.outputFormat.toUpperCase()}',
-                    style: TextStyle(color: cs.primary, fontSize: 11, fontWeight: FontWeight.w600)),
+                child: Text(
+                  '→ ${job.outputFormat.toUpperCase()}',
+                  style: TextStyle(color: cs.primary, fontSize: 11, fontWeight: FontWeight.w600),
+                ),
               ),
               const SizedBox(width: 8),
               IconButton(
@@ -160,7 +169,7 @@ class _ConvertTile extends StatelessWidget {
             const SizedBox(height: 8),
             LinearProgressIndicator(
               value:           job.progress,
-              backgroundColor: cs.outline.withOpacity(0.2),
+              backgroundColor: cs.outline.withValues(alpha: 0.2),
               color:           cs.primary,
               borderRadius:    BorderRadius.circular(4),
             ),
