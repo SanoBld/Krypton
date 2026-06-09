@@ -1,17 +1,3 @@
-# .github/workflows/build.yml
-#
-# Builds Krypton for Android (APK), Linux, and Windows.
-#
-# Triggers
-#   • push / PR on main  → build only, upload as workflow artifacts
-#   • push of a v* tag   → build + create GitHub Release with all three assets
-#
-# Required repository secrets (Settings → Secrets → Actions)
-#   KEYSTORE_BASE64    base64-encoded release.jks  (openssl base64 -in release.jks)
-#   STORE_PASSWORD     keystore password
-#   KEY_ALIAS          key alias inside the keystore
-#   KEY_PASSWORD       key password
-
 name: Build Krypton
 
 on:
@@ -22,11 +8,8 @@ on:
     branches: [main]
 
 permissions:
-  contents: write   # needed to create GitHub Releases
+  contents: write
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Android APK
-# ─────────────────────────────────────────────────────────────────────────────
 jobs:
   build-android:
     name: Android APK
@@ -45,38 +28,16 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.0'
+          flutter-version: '3.44.1'
           channel: stable
           cache: true
 
       - name: Install dependencies
         run: flutter pub get
 
-      # Decode the keystore from the base64 secret
-      - name: Decode keystore
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        run: |
-          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/release.jks
-
-      # Write key.properties so Gradle picks it up
-      - name: Write key.properties
-        env:
-          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
-          KEY_ALIAS:      ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD:   ${{ secrets.KEY_PASSWORD }}
-        run: |
-          cat > android/key.properties <<EOF
-          storePassword=$STORE_PASSWORD
-          keyPassword=$KEY_PASSWORD
-          keyAlias=$KEY_ALIAS
-          storeFile=release.jks
-          EOF
-
       - name: Build release APK
         run: flutter build apk --release --split-per-abi
 
-      # Rename so the tag ends up in the filename when it exists
       - name: Rename APK
         run: |
           VERSION="${GITHUB_REF_NAME:-dev}"
@@ -93,9 +54,6 @@ jobs:
           path: dist/*.apk
           retention-days: 14
 
-  # ─────────────────────────────────────────────────────────────────────────────
-  # Linux
-  # ─────────────────────────────────────────────────────────────────────────────
   build-linux:
     name: Linux
     runs-on: ubuntu-22.04
@@ -115,7 +73,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.0'
+          flutter-version: '3.44.1'
           channel: stable
           cache: true
 
@@ -142,9 +100,6 @@ jobs:
           path: dist/*.tar.gz
           retention-days: 14
 
-  # ─────────────────────────────────────────────────────────────────────────────
-  # Windows
-  # ─────────────────────────────────────────────────────────────────────────────
   build-windows:
     name: Windows
     runs-on: windows-latest
@@ -156,7 +111,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.0'
+          flutter-version: '3.44.1'
           channel: stable
           cache: true
 
@@ -185,9 +140,6 @@ jobs:
           path: dist/*.zip
           retention-days: 14
 
-  # ─────────────────────────────────────────────────────────────────────────────
-  # GitHub Release (tag pushes only)
-  # ─────────────────────────────────────────────────────────────────────────────
   release:
     name: Create GitHub Release
     needs: [build-android, build-linux, build-windows]
