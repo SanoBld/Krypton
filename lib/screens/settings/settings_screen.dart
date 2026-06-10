@@ -1,3 +1,5 @@
+// lib/screens/settings/settings_screen.dart
+
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -23,7 +25,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   bool? _ytdlpAvailable;
   bool? _ffmpegAvailable;
-  bool _checkingBinaries = true;
+  bool  _checkingBinaries = true;
 
   @override
   void initState() {
@@ -37,7 +39,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     bool yt, ff;
 
     if (Platform.isAndroid || Platform.isIOS) {
-      // Mobile: binaries are bundled in assets — use BinaryManager
+      // Mobile: use bundled binaries via BinaryManager
       yt = await BinaryManager.instance.isYtDlpAvailable();
       ff = await BinaryManager.instance.isFfmpegAvailable();
     } else {
@@ -82,6 +84,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   checking:        _checkingBinaries,
                   onRecheck:       _checkBinaries,
                 ),
+                // Backend selector — mobile only
+                if (Platform.isAndroid || Platform.isIOS) ...[
+                  const SizedBox(height: 24),
+                  _SectionHeader(label: 'Download Backend'),
+                  _BackendSection(),
+                ],
                 const SizedBox(height: 24),
                 _SectionHeader(label: 'Updates'),
                 _UpdatesSection(),
@@ -102,14 +110,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   SliverAppBar _buildAppBar(BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
     return SliverAppBar.large(
-      backgroundColor:     cs.surface,
-      surfaceTintColor:    Colors.transparent,
+      backgroundColor:          cs.surface,
+      surfaceTintColor:         Colors.transparent,
       title: const Text(
         'Settings',
         style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5),
       ),
-      expandedHeight:           100,
-      pinned:                   true,
+      expandedHeight:            100,
+      pinned:                    true,
       automaticallyImplyLeading: false,
     );
   }
@@ -166,8 +174,8 @@ class _PathTile extends StatefulWidget {
   });
 
   final IconData icon;
-  final String label;
-  final String value;
+  final String   label;
+  final String   value;
   final Future<void> Function(String) onChanged;
 
   @override
@@ -200,8 +208,8 @@ class _PathTileState extends State<_PathTile> {
       title:   Text(widget.label, style: const TextStyle(fontSize: 14)),
       subtitle: Text(
         _current.isEmpty ? 'Not set' : _current,
-        maxLines:  1,
-        overflow:  TextOverflow.ellipsis,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontSize:   12,
           color:      _current.isEmpty ? cs.error : cs.onSurfaceVariant,
@@ -260,12 +268,12 @@ class _DownloadsSectionState extends State<_DownloadsSection> {
               const Text('1', style: TextStyle(fontSize: 12)),
               Expanded(
                 child: Slider(
-                  value:      _workers.toDouble(),
-                  min:        1,
-                  max:        8,
-                  divisions:  7,
-                  label:      '$_workers',
-                  onChanged:  (v) => setState(() => _workers = v.round()),
+                  value:       _workers.toDouble(),
+                  min:         1,
+                  max:         8,
+                  divisions:   7,
+                  label:       '$_workers',
+                  onChanged:   (v) => setState(() => _workers = v.round()),
                   onChangeEnd: (v) async {
                     await KryptonConfig.instance.setMaxWorkers(v.round());
                     logger.i('Settings', 'Workers → ${v.round()}');
@@ -306,7 +314,6 @@ class _AppearanceSectionState extends State<_AppearanceSection> {
   @override
   Widget build(BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
-
     return _Card(
       children: [
         if (Platform.isAndroid) ...[
@@ -372,7 +379,6 @@ class _BinariesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Hint text differs: mobile has bundled binaries, desktop uses system PATH
     final String hint = (Platform.isAndroid || Platform.isIOS)
         ? 'Binaries are bundled with the app.'
         : 'Ensure both binaries are on your system PATH.';
@@ -469,7 +475,101 @@ class _BinaryTile extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 5. Updates
+// 5. Download Backend (mobile only)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _BackendSection extends StatefulWidget {
+  const _BackendSection();
+
+  @override
+  State<_BackendSection> createState() => _BackendSectionState();
+}
+
+class _BackendSectionState extends State<_BackendSection> {
+  late DownloadBackendMode    _mode;
+  final _apiController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _mode               = KryptonConfig.instance.downloadBackend;
+    _apiController.text = KryptonConfig.instance.customApiUrl;
+  }
+
+  @override
+  void dispose() {
+    _apiController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    return _Card(
+      children: [
+        // One radio per mode
+        ...DownloadBackendMode.values.map((mode) => RadioListTile<DownloadBackendMode>(
+          value:      mode,
+          groupValue: _mode,
+          title: Text(_modeLabel(mode), style: const TextStyle(fontSize: 14)),
+          subtitle: Text(
+            _modeDesc(mode),
+            style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+          ),
+          onChanged: (v) async {
+            if (v == null) return;
+            setState(() => _mode = v);
+            await KryptonConfig.instance.setDownloadBackend(v);
+            logger.i('Settings', 'Backend → ${v.name}');
+          },
+        )),
+        // API URL field — only shown when a custom API is relevant
+        if (_mode == DownloadBackendMode.customApi ||
+            _mode == DownloadBackendMode.auto) ...[
+          const _Divider(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: TextField(
+              controller: _apiController,
+              style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
+              decoration: InputDecoration(
+                labelText:  'API URL',
+                hintText:   'http://192.168.1.100:8080',
+                helperText: 'Address of your self-hosted yt-dlp server.',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                isDense: true,
+              ),
+              onChanged: (v) {
+                KryptonConfig.instance.setCustomApiUrl(v);
+                logger.i('Settings', 'Custom API URL → $v');
+              },
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  String _modeLabel(DownloadBackendMode m) => switch (m) {
+    DownloadBackendMode.cobalt    => 'Cobalt  (~25 sites)',
+    DownloadBackendMode.customApi => 'Custom API  (all sites)',
+    DownloadBackendMode.auto      => 'Auto  (Cobalt → API fallback)',
+  };
+
+  String _modeDesc(DownloadBackendMode m) => switch (m) {
+    DownloadBackendMode.cobalt    =>
+        'Free, no setup. YouTube, TikTok, Twitter, Instagram…',
+    DownloadBackendMode.customApi =>
+        'Requires your own server. Full yt-dlp site support.',
+    DownloadBackendMode.auto      =>
+        'Tries Cobalt first, falls back to your API if unsupported.',
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. Updates
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _UpdatesSection extends StatelessWidget {
@@ -580,7 +680,7 @@ class _AndroidUpdateTile extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 6. Diagnostics (debug builds only)
+// 7. Diagnostics (debug builds only)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _DiagnosticsSection extends StatefulWidget {

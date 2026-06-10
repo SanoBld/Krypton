@@ -1,14 +1,9 @@
 // lib/config/krypton_config.dart
-//
-// Persistent app configuration backed by SharedPreferences.
-// All setters are async and call notifyListeners() so that widgets
-// built with context.watch<KryptonConfig>() rebuild automatically.
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// ── Language enum ─────────────────────────────────────────────────────────────
-
+// App language options
 enum AppLanguage {
   en,
   fr;
@@ -23,59 +18,77 @@ enum AppLanguage {
   }
 }
 
-// ── KryptonConfig ─────────────────────────────────────────────────────────────
+// Download backend options (how to download videos on mobile)
+enum DownloadBackendMode {
+  cobalt,
+  customApi,
+  auto
+}
 
 class KryptonConfig extends ChangeNotifier {
   KryptonConfig._();
 
   static final KryptonConfig instance = KryptonConfig._();
 
-  // ── SharedPreferences keys ────────────────────────────────────────────────
+  // Keys to save data in phone memory
+  static const _kDownloadPath   = 'download_path';
+  static const _kConvertPath    = 'convert_path';
+  static const _kMaxWorkers     = 'max_workers';
+  static const _kDynamicColor   = 'dynamic_color';
+  static const _kLanguage       = 'language';
+  static const _kBackend        = 'download_backend';
+  static const _kCustomApi      = 'custom_api_url';
 
-  static const _kDownloadPath  = 'download_path';
-  static const _kConvertPath   = 'convert_path';
-  static const _kMaxWorkers    = 'max_workers';
-  static const _kDynamicColor  = 'dynamic_color';
-  static const _kLanguage      = 'language';
-
-  // ── Internal state ────────────────────────────────────────────────────────
-
+  // Current app settings
   SharedPreferences? _prefs;
 
-  String       _downloadPath  = '';
-  String       _convertPath   = '';
-  int          _maxWorkers    = 3;
-  bool         _dynamicColor  = true;
-  AppLanguage  _language      = AppLanguage.en;
+  String _downloadPath = '';
+  String _convertPath  = '';
+  int _maxWorkers      = 3;
+  bool _dynamicColor   = true;
+  AppLanguage _language = AppLanguage.en;
+  
+  // New settings for the download backend
+  DownloadBackendMode _downloadBackend = DownloadBackendMode.auto;
+  String _customApiUrl = '';
 
-  // ── Initialisation ────────────────────────────────────────────────────────
-
-  /// Call once at app startup, before the widget tree is built.
+  // Load all settings when the app starts
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
 
-    _downloadPath = _prefs!.getString(_kDownloadPath)  ?? '';
-    _convertPath  = _prefs!.getString(_kConvertPath)   ?? '';
-    _maxWorkers   = _prefs!.getInt(_kMaxWorkers)       ?? 3;
-    _dynamicColor = _prefs!.getBool(_kDynamicColor)    ?? true;
+    _downloadPath = _prefs?.getString(_kDownloadPath) ?? '';
+    _convertPath  = _prefs?.getString(_kConvertPath)  ?? '';
+    _maxWorkers   = _prefs?.getInt(_kMaxWorkers)      ?? 3;
+    _dynamicColor = _prefs?.getBool(_kDynamicColor)   ?? true;
 
-    final String langName = _prefs!.getString(_kLanguage) ?? AppLanguage.en.name;
+    // Load saved language or use English by default
+    final String langName = _prefs?.getString(_kLanguage) ?? AppLanguage.en.name;
     _language = AppLanguage.values.firstWhere(
       (l) => l.name == langName,
       orElse: () => AppLanguage.en,
     );
+
+    // Load saved download backend or use Auto by default
+    final String backendName = _prefs?.getString(_kBackend) ?? DownloadBackendMode.auto.name;
+    _downloadBackend = DownloadBackendMode.values.firstWhere(
+      (b) => b.name == backendName,
+      orElse: () => DownloadBackendMode.auto,
+    );
+
+    // Load custom API URL
+    _customApiUrl = _prefs?.getString(_kCustomApi) ?? '';
   }
 
-  // ── Getters ───────────────────────────────────────────────────────────────
+  // Getters (read settings)
+  String get downloadPath               => _downloadPath;
+  String get convertPath                => _convertPath;
+  int get maxWorkers                    => _maxWorkers;
+  bool get dynamicColor                 => _dynamicColor;
+  AppLanguage get language              => _language;
+  DownloadBackendMode get downloadBackend => _downloadBackend;
+  String get customApiUrl               => _customApiUrl;
 
-  String      get downloadPath  => _downloadPath;
-  String      get convertPath   => _convertPath;
-  int         get maxWorkers    => _maxWorkers;
-  bool        get dynamicColor  => _dynamicColor;
-  AppLanguage get language      => _language;
-
-  // ── Setters ───────────────────────────────────────────────────────────────
-
+  // Setters (save settings and refresh screen)
   Future<void> setDownloadPath(String v) async {
     _downloadPath = v;
     await _prefs?.setString(_kDownloadPath, v);
@@ -103,6 +116,20 @@ class KryptonConfig extends ChangeNotifier {
   Future<void> setLanguage(AppLanguage v) async {
     _language = v;
     await _prefs?.setString(_kLanguage, v.name);
+    notifyListeners();
+  }
+
+  // Save chosen backend mode
+  Future<void> setDownloadBackend(DownloadBackendMode v) async {
+    _downloadBackend = v;
+    await _prefs?.setString(_kBackend, v.name);
+    notifyListeners();
+  }
+
+  // Save server URL
+  Future<void> setCustomApiUrl(String v) async {
+    _customApiUrl = v.trim();
+    await _prefs?.setString(_kCustomApi, v.trim());
     notifyListeners();
   }
 }
