@@ -35,13 +35,21 @@ jobs:
       - name: Download binaries (Android ARM64)
         run: |
           mkdir -p assets/binaries
+
           # yt-dlp ARM64
-          curl -L "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64" \
+          curl -fL "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64" \
                -o assets/binaries/yt-dlp
-          # ffmpeg ARM64 static build
-          curl -L "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz" \
-               | tar -xJ --wildcards --no-anchored 'ffmpeg' --strip-components=1 -C assets/binaries/
-          mv assets/binaries/ffmpeg assets/binaries/ffmpeg 2>/dev/null || true
+
+          # ffmpeg ARM64 — extract to temp folder, then copy the binary
+          mkdir -p /tmp/ffmpeg_dl
+          curl -fL "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz" \
+               -o /tmp/ffmpeg_dl/ffmpeg.tar.xz
+          tar -xJf /tmp/ffmpeg_dl/ffmpeg.tar.xz -C /tmp/ffmpeg_dl
+          find /tmp/ffmpeg_dl -maxdepth 2 -name 'ffmpeg' -type f \
+               | head -1 | xargs -I{} cp {} assets/binaries/ffmpeg
+
+          # Confirm both files are present before building
+          ls -lh assets/binaries/
 
       - name: Install dependencies
         run: flutter pub get
@@ -94,12 +102,20 @@ jobs:
       - name: Download binaries (Linux x86_64)
         run: |
           mkdir -p assets/binaries
+
           # yt-dlp x86_64
-          curl -L "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux" \
+          curl -fL "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux" \
                -o assets/binaries/yt-dlp
-          # ffmpeg x86_64 static build
-          curl -L "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz" \
-               | tar -xJ --wildcards --no-anchored 'ffmpeg' --strip-components=1 -C assets/binaries/
+
+          # ffmpeg x86_64 — extract to temp folder, then copy the binary
+          mkdir -p /tmp/ffmpeg_dl
+          curl -fL "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz" \
+               -o /tmp/ffmpeg_dl/ffmpeg.tar.xz
+          tar -xJf /tmp/ffmpeg_dl/ffmpeg.tar.xz -C /tmp/ffmpeg_dl
+          find /tmp/ffmpeg_dl -maxdepth 2 -name 'ffmpeg' -type f \
+               | head -1 | xargs -I{} cp {} assets/binaries/ffmpeg
+
+          ls -lh assets/binaries/
 
       - name: Install dependencies
         run: flutter pub get
@@ -143,18 +159,24 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force assets/binaries | Out-Null
-          # yt-dlp — saved without extension to match the asset name in pubspec
+
+          # yt-dlp — no extension in assets to match pubspec asset name
           Invoke-WebRequest `
             -Uri "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" `
             -OutFile "assets/binaries/yt-dlp"
-          # ffmpeg — extract only ffmpeg.exe, save without extension
+
+          # ffmpeg — extract zip, find ffmpeg.exe, copy without extension
           Invoke-WebRequest `
             -Uri "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" `
             -OutFile ffmpeg.zip
           Expand-Archive ffmpeg.zip -DestinationPath ffmpeg_tmp
-          $exe = Get-ChildItem -Path ffmpeg_tmp -Filter ffmpeg.exe -Recurse | Select-Object -First 1
+          $exe = Get-ChildItem -Path ffmpeg_tmp -Filter ffmpeg.exe -Recurse `
+                 | Select-Object -First 1
           Copy-Item $exe.FullName "assets/binaries/ffmpeg"
           Remove-Item -Recurse -Force ffmpeg_tmp, ffmpeg.zip
+
+          # Confirm both files are present before building
+          Get-ChildItem assets/binaries/
 
       - name: Install dependencies
         run: flutter pub get
