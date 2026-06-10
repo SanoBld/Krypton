@@ -32,6 +32,12 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Download yt-dlp (Android ARM64)
+        run: |
+          mkdir -p assets/binaries
+          curl -L "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64" \
+               -o assets/binaries/yt-dlp
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -80,6 +86,12 @@ jobs:
       - name: Enable Linux desktop
         run: flutter config --enable-linux-desktop
 
+      - name: Download yt-dlp (Linux x86_64)
+        run: |
+          mkdir -p assets/binaries
+          curl -L "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux" \
+               -o assets/binaries/yt-dlp
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -117,6 +129,15 @@ jobs:
 
       - name: Enable Windows desktop
         run: flutter config --enable-windows-desktop
+
+      - name: Download yt-dlp (Windows x64)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force assets/binaries | Out-Null
+          # Asset name must match pubspec: 'yt-dlp' (no extension)
+          Invoke-WebRequest `
+            -Uri "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" `
+            -OutFile "assets/binaries/yt-dlp"
 
       - name: Install dependencies
         run: flutter pub get
