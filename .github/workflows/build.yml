@@ -32,11 +32,16 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Download yt-dlp (Android ARM64)
+      - name: Download binaries (Android ARM64)
         run: |
           mkdir -p assets/binaries
+          # yt-dlp ARM64
           curl -L "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64" \
                -o assets/binaries/yt-dlp
+          # ffmpeg ARM64 static build
+          curl -L "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz" \
+               | tar -xJ --wildcards --no-anchored 'ffmpeg' --strip-components=1 -C assets/binaries/
+          mv assets/binaries/ffmpeg assets/binaries/ffmpeg 2>/dev/null || true
 
       - name: Install dependencies
         run: flutter pub get
@@ -86,11 +91,15 @@ jobs:
       - name: Enable Linux desktop
         run: flutter config --enable-linux-desktop
 
-      - name: Download yt-dlp (Linux x86_64)
+      - name: Download binaries (Linux x86_64)
         run: |
           mkdir -p assets/binaries
+          # yt-dlp x86_64
           curl -L "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux" \
                -o assets/binaries/yt-dlp
+          # ffmpeg x86_64 static build
+          curl -L "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz" \
+               | tar -xJ --wildcards --no-anchored 'ffmpeg' --strip-components=1 -C assets/binaries/
 
       - name: Install dependencies
         run: flutter pub get
@@ -130,14 +139,22 @@ jobs:
       - name: Enable Windows desktop
         run: flutter config --enable-windows-desktop
 
-      - name: Download yt-dlp (Windows x64)
+      - name: Download binaries (Windows x64)
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force assets/binaries | Out-Null
-          # Asset name must match pubspec: 'yt-dlp' (no extension)
+          # yt-dlp — saved without extension to match the asset name in pubspec
           Invoke-WebRequest `
             -Uri "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" `
             -OutFile "assets/binaries/yt-dlp"
+          # ffmpeg — extract only ffmpeg.exe, save without extension
+          Invoke-WebRequest `
+            -Uri "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" `
+            -OutFile ffmpeg.zip
+          Expand-Archive ffmpeg.zip -DestinationPath ffmpeg_tmp
+          $exe = Get-ChildItem -Path ffmpeg_tmp -Filter ffmpeg.exe -Recurse | Select-Object -First 1
+          Copy-Item $exe.FullName "assets/binaries/ffmpeg"
+          Remove-Item -Recurse -Force ffmpeg_tmp, ffmpeg.zip
 
       - name: Install dependencies
         run: flutter pub get

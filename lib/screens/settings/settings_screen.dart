@@ -8,19 +8,8 @@ import 'package:provider/provider.dart';
 import '../../config/krypton_config.dart';
 import '../../core/logger.dart';
 import '../../core/process_runner.dart';
+import '../../services/binary_manager.dart';
 import '../../services/krypton_updater.dart';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SettingsScreen
-//
-// Full settings surface for Krypton. Sections:
-//   1. Paths        — download & temp output directories
-//   2. Downloads    — max concurrent workers
-//   3. Appearance   — dynamic color toggle, language selector
-//   4. Binaries     — yt-dlp / FFmpeg path validation
-//   5. Updates      — manual OTA check (Android) / version info
-//   6. Diagnostics  — live log viewer (debug builds only)
-// ─────────────────────────────────────────────────────────────────────────────
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -44,12 +33,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _checkBinaries() async {
     logger.d(_tag, 'Checking binary availability…');
-    final bool yt = await processRunner.isBinaryAvailable('yt-dlp');
-    final bool ff = await processRunner.isBinaryAvailable('ffmpeg');
+
+    bool yt, ff;
+
+    if (Platform.isAndroid || Platform.isIOS) {
+      // Mobile: binaries are bundled in assets — use BinaryManager
+      yt = await BinaryManager.instance.isYtDlpAvailable();
+      ff = await BinaryManager.instance.isFfmpegAvailable();
+    } else {
+      // Desktop: check system PATH
+      yt = await processRunner.isBinaryAvailable('yt-dlp');
+      ff = await processRunner.isBinaryAvailable('ffmpeg');
+    }
+
     if (!mounted) return;
     setState(() {
-      _ytdlpAvailable = yt;
-      _ffmpegAvailable = ff;
+      _ytdlpAvailable   = yt;
+      _ffmpegAvailable  = ff;
       _checkingBinaries = false;
     });
     logger.i(_tag, 'yt-dlp=$yt, ffmpeg=$ff');
@@ -77,10 +77,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 24),
                 _SectionHeader(label: 'Binaries'),
                 _BinariesSection(
-                  ytdlpAvailable: _ytdlpAvailable,
+                  ytdlpAvailable:  _ytdlpAvailable,
                   ffmpegAvailable: _ffmpegAvailable,
-                  checking: _checkingBinaries,
-                  onRecheck: _checkBinaries,
+                  checking:        _checkingBinaries,
+                  onRecheck:       _checkBinaries,
                 ),
                 const SizedBox(height: 24),
                 _SectionHeader(label: 'Updates'),
@@ -102,21 +102,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   SliverAppBar _buildAppBar(BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
     return SliverAppBar.large(
-      backgroundColor: cs.surface,
-      surfaceTintColor: Colors.transparent,
+      backgroundColor:     cs.surface,
+      surfaceTintColor:    Colors.transparent,
       title: const Text(
         'Settings',
         style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5),
       ),
-      expandedHeight: 100,
-      pinned: true,
+      expandedHeight:           100,
+      pinned:                   true,
       automaticallyImplyLeading: false,
     );
   }
 
   EdgeInsets _contentPadding(BuildContext context) {
     final double width = MediaQuery.of(context).size.width;
-    final double h = width > 900 ? (width - 800) / 2 : 16;
+    final double h     = width > 900 ? (width - 800) / 2 : 16;
     return EdgeInsets.fromLTRB(h, 8, h, 0);
   }
 }
@@ -134,9 +134,9 @@ class _PathsSection extends StatelessWidget {
     return _Card(
       children: [
         _PathTile(
-          icon: Icons.download_for_offline_outlined,
-          label: 'Download folder',
-          value: config.downloadPath,
+          icon:      Icons.download_for_offline_outlined,
+          label:     'Download folder',
+          value:     config.downloadPath,
           onChanged: (path) async {
             await config.setDownloadPath(path);
             logger.i('Settings', 'Download path → $path');
@@ -144,9 +144,9 @@ class _PathsSection extends StatelessWidget {
         ),
         const _Divider(),
         _PathTile(
-          icon: Icons.swap_horiz_rounded,
-          label: 'Conversion output folder',
-          value: config.convertPath,
+          icon:      Icons.swap_horiz_rounded,
+          label:     'Conversion output folder',
+          value:     config.convertPath,
           onChanged: (path) async {
             await config.setConvertPath(path);
             logger.i('Settings', 'Convert path → $path');
@@ -197,11 +197,11 @@ class _PathTileState extends State<_PathTile> {
     final ColorScheme cs = Theme.of(context).colorScheme;
     return ListTile(
       leading: Icon(widget.icon, color: cs.primary),
-      title: Text(widget.label, style: const TextStyle(fontSize: 14)),
+      title:   Text(widget.label, style: const TextStyle(fontSize: 14)),
       subtitle: Text(
         _current.isEmpty ? 'Not set' : _current,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+        maxLines:  1,
+        overflow:  TextOverflow.ellipsis,
         style: TextStyle(
           fontSize:   12,
           color:      _current.isEmpty ? cs.error : cs.onSurfaceVariant,
@@ -210,7 +210,7 @@ class _PathTileState extends State<_PathTile> {
       ),
       trailing: TextButton.icon(
         onPressed: _pick,
-        icon: const Icon(Icons.folder_open_rounded, size: 16),
+        icon:  const Icon(Icons.folder_open_rounded, size: 16),
         label: const Text('Change'),
       ),
     );
@@ -293,7 +293,7 @@ class _AppearanceSection extends StatefulWidget {
 }
 
 class _AppearanceSectionState extends State<_AppearanceSection> {
-  late bool _dynamicColor;
+  late bool        _dynamicColor;
   late AppLanguage _language;
 
   @override
@@ -320,7 +320,7 @@ class _AppearanceSectionState extends State<_AppearanceSection> {
               'Harmonize UI with your wallpaper palette',
               style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
             ),
-            value: _dynamicColor,
+            value:     _dynamicColor,
             onChanged: (v) async {
               setState(() => _dynamicColor = v);
               await KryptonConfig.instance.setDynamicColor(v);
@@ -331,7 +331,7 @@ class _AppearanceSectionState extends State<_AppearanceSection> {
         ],
         ListTile(
           leading: Icon(Icons.language_rounded, color: cs.primary),
-          title: const Text('Language', style: TextStyle(fontSize: 14)),
+          title:   const Text('Language', style: TextStyle(fontSize: 14)),
           trailing: DropdownButton<AppLanguage>(
             value:        _language,
             underline:    const SizedBox.shrink(),
@@ -365,13 +365,18 @@ class _BinariesSection extends StatelessWidget {
     required this.onRecheck,
   });
 
-  final bool? ytdlpAvailable;
-  final bool? ffmpegAvailable;
-  final bool checking;
+  final bool?        ytdlpAvailable;
+  final bool?        ffmpegAvailable;
+  final bool         checking;
   final VoidCallback onRecheck;
 
   @override
   Widget build(BuildContext context) {
+    // Hint text differs: mobile has bundled binaries, desktop uses system PATH
+    final String hint = (Platform.isAndroid || Platform.isIOS)
+        ? 'Binaries are bundled with the app.'
+        : 'Ensure both binaries are on your system PATH.';
+
     return _Card(
       children: [
         _BinaryTile(
@@ -396,10 +401,10 @@ class _BinariesSection extends StatelessWidget {
             label: const Text('Re-check'),
           ),
           title: Text(
-            'Ensure both binaries are on your system PATH.',
+            hint,
             style: TextStyle(
               fontSize: 11,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color:    Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -418,8 +423,8 @@ class _BinaryTile extends StatelessWidget {
 
   final String name;
   final String description;
-  final bool? available;
-  final bool checking;
+  final bool?  available;
+  final bool   checking;
 
   @override
   Widget build(BuildContext context) {
@@ -479,7 +484,7 @@ class _UpdatesSection extends StatelessWidget {
       children: [
         ListTile(
           leading: Icon(Icons.info_outline_rounded, color: cs.primary),
-          title: const Text('Version', style: TextStyle(fontSize: 14)),
+          title:   const Text('Version', style: TextStyle(fontSize: 14)),
           trailing: Text(
             updater.currentVersion,
             style: TextStyle(
@@ -518,7 +523,6 @@ class _AndroidUpdateTile extends StatelessWidget {
     final ColorScheme cs    = Theme.of(context).colorScheme;
     final UpdateState state = updater.state;
 
-    // Initialised to empty string — always overwritten by the switch below.
     String  subtitle = '';
     Widget? trailing;
 
@@ -564,8 +568,8 @@ class _AndroidUpdateTile extends StatelessWidget {
     }
 
     return ListTile(
-      leading: Icon(Icons.system_update_rounded, color: cs.primary),
-      title:   const Text('Krypton update', style: TextStyle(fontSize: 14)),
+      leading:  Icon(Icons.system_update_rounded, color: cs.primary),
+      title:    const Text('Krypton update', style: TextStyle(fontSize: 14)),
       subtitle: Text(
         subtitle,
         style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
@@ -661,7 +665,7 @@ class _Card extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: children,
+        children:     children,
       ),
     );
   }
@@ -676,7 +680,7 @@ class _Divider extends StatelessWidget {
       height:    1,
       thickness: 0.6,
       indent:    16,
-      color:     Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
     );
   }
 }
